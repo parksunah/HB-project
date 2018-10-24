@@ -11,8 +11,14 @@ def seed():
 
     user1 = User(name="Sunah", email="sunah@gmail.com", password="abc123")
     user2 = User(name="Seijin", email="seijin@gmail.com", password="abc456")
-    company1 = Company("Snapchat")
-    company2 = Company("Etsy")
+    
+    # Companys
+    Grubhub = Company("Grubhub")
+    GoPro = Company("GoPro")
+    Etsy = Company("Etsy")
+    Netflix = Company("Netflix")
+    Groupon = Company("Groupon")
+    eBay = Company("eBay")
 
     # Followings
     user1.company.append(company1) 
