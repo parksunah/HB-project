@@ -67,7 +67,7 @@ class StockPrice(db.Model):
 
     stock_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     date = db.Column(db.DateTime, nullable=False)
-    price = db.Column(db.Integer, nullable=False)
+    price = db.Column(db.Float, nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey("companys.company_id"))
     
     company = db.relationship("Company", backref=db.backref("stock_prices"))
