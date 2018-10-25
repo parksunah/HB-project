@@ -21,12 +21,12 @@ def seed():
     eBay = Company("eBay")
 
     # Followings
-    user1.company.append(company1) 
-    user1.company.append(company2)
-    user2.company.append(company1)
+    user1.company.append(Etsy) 
+    user1.company.append(GoPro)
+    user2.company.append(eBay)
 
 
-    db.session.add_all([user1, user2, company1, company2])
+    db.session.add_all([user1, user2, Grubhub, GoPro, Etsy, Netflix, Groupon, eBay])
     db.session.commit()
 
 

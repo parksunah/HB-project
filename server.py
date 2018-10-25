@@ -1,18 +1,20 @@
 from jinja2 import StrictUndefined
 
-from flask import Flask, render_template, redirect, request, flash, session, url_for
+from flask import Flask, render_template, redirect, request, flash, session, url_for, jsonify
 from flask_debugtoolbar import DebugToolbarExtension
 
 from model import User, Company, Following, StockPrice, Interest, connect_to_db, db
-
-from forms import SelectForm
+import price 
+import interest 
+from forms import SelectForm, RegisterForm
 
 
 from pytrends.request import TrendReq
+import pandas_datareader.data as web
 import pandas as pd
 
 import datetime
-
+from dateutil.relativedelta import relativedelta
 
 
 app = Flask(__name__)
@@ -35,26 +37,31 @@ def index():
     return render_template("homepage.html")
 
 
-@app.route("/register", methods=["GET"])
-def register_form():
-    """User Registration."""
+@app.route("/register", methods=["GET", "POST"])
+def register():
+
+    form = RegisterForm(request.form)
+
+    if request.method == 'POST':
+        
+        if form.validate():
+            return _add_user_to_db(form)
+            
+        else:
+            flash("The form was not properly completed.")
+
+    return render_template("register.html", form=form)
 
 
-    return render_template("register_form.html")
-
-
-@app.route("/register", methods=["POST"])
-def register_process():
-
-    name = request.form.get("name")
-    email = request.form.get("email")
-    password = request.form.get("password")
-
-    User(name=name, email=email, password=password)
+def _add_user_to_db(form):
+    
+    user = User(name=form.name.data,
+                password=form.password.data,
+                email=form.email.data)
 
     db.session.add(user)
     db.session.commit()
-
+    
     return redirect('/')
 
 
@@ -66,45 +73,51 @@ def user_login():
 
 
 @app.route("/create_view", methods=["GET", "POST"])
-def select_view():
-    """Select company and period to show the correlation view."""
+def create_view():
+    """For real-time option."""
 
     form = SelectForm(request.form)
 
     if request.method == 'POST':
 
-        interest = TrendReq(hl='en-US', tz=360) # connect to google trends
-        
-        kw_list = form.company.data
-        time_frame_dict = { '1y' : 'today 12-m', '5y' : 'today 5-y'}
-        time_frame = time_frame_dict.get(form.time_frame.data)
-
-        interest.build_payload(kw_list, timeframe=time_frame) # build pay load
-
-        # returns historical, indexed data for when the keyword was searched most as shown on Google Trends' Interest Over Time section.
-        # return type : pandas dataframe
-        interest_df = interest.interest_over_time() 
-        interest_df = interest_df.iloc[:,:1] # get rid of isPartial column
-
-        empty = []
-        kw = kw_list[0] 
-
-        for row in interest_df.iterrows():
-            
-            date, value = row[0], row[1] # date : datetime / interest : pandas series.
-            value = value.to_dict()
-
-            interest = Interest(date=date, interest=value[kw])
-            
-            db.session.add(interest)
-            db.session.commit()     
-
-
-        return render_template("test.html")
+        return interest._add_interest_to_db(form), price._add_price_to_db(form)
 
     return render_template("create_view.html", form=form)
 
-   
+  
+
+@app.route("/test")
+def _convert_interest_to_list():
+    """convert the database to a list for preparing charts."""
+    
+    interest_list = []
+
+    for obj in Interest.query.all():
+
+        interest_dict = {}
+        interest_dict['date'] = obj.date.isoformat()
+        interest_dict['interest'] = obj.interest
+        interest_list.append(interest_dict)
+
+    return jsonify(interest_list)
+
+
+@app.route("/test2")
+def _convert_stock_price_to_list():
+    """convert the database to a list for preparing charts."""
+    
+    stock_price_list = []
+
+    for obj in StockPrice.query.all():
+
+        stock_price_dict = {}
+        stock_price_dict['date'] = obj.date.isoformat()
+        stock_price_dict['interest'] = obj.price
+        stock_price_list.append(stock_price_dict)
+
+    return jsonify(stock_price_list)
+
+
 
 
 
